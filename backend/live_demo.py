@@ -37,7 +37,25 @@ def record_utterance() -> bytes:
             target_idx = i
             break
             
-    stream = pa.open(format=pyaudio.paInt16, channels=CHANNELS, rate=SAMPLE_RATE, input=True, frames_per_buffer=CHUNK_FRAMES, input_device_index=target_idx)
+    try:
+        stream = pa.open(
+            format=pyaudio.paInt16,
+            channels=CHANNELS,
+            rate=SAMPLE_RATE,
+            input=True,
+            frames_per_buffer=CHUNK_FRAMES,
+            input_device_index=target_idx,
+        )
+    except OSError:
+        # Fall back to default microphone when preferred device is unavailable.
+        stream = pa.open(
+            format=pyaudio.paInt16,
+            channels=CHANNELS,
+            rate=SAMPLE_RATE,
+            input=True,
+            frames_per_buffer=CHUNK_FRAMES,
+        )
+        target_idx = None
     print(f"\n🎙️  Listening via OnePlus Buds (Device {target_idx})... (speak now)", flush=True)
     frames = []
     silent_chunks = 0
@@ -84,13 +102,22 @@ def play_audio(audio_bytes: bytes):
         if target_idx is not None:
             print(f"   [Audio Route] Auto-selected OnePlus Output (Device {target_idx})")
             
-        stream = pa.open(
-            format=pa.get_format_from_width(wf.getsampwidth()),
-            channels=wf.getnchannels(),
-            rate=wf.getframerate(),
-            output=True,
-            output_device_index=target_idx,
-        )
+        try:
+            stream = pa.open(
+                format=pa.get_format_from_width(wf.getsampwidth()),
+                channels=wf.getnchannels(),
+                rate=wf.getframerate(),
+                output=True,
+                output_device_index=target_idx,
+            )
+        except OSError:
+            # Fall back to default speaker when preferred output route fails.
+            stream = pa.open(
+                format=pa.get_format_from_width(wf.getsampwidth()),
+                channels=wf.getnchannels(),
+                rate=wf.getframerate(),
+                output=True,
+            )
         data_chunk = wf.readframes(1024)
         while data_chunk:
             stream.write(data_chunk)

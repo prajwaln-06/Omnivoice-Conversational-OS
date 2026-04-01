@@ -1,31 +1,78 @@
-from fastapi import FastAPI, APIRouter, UploadFile, File, Body
-from pydantic import BaseModel
-from typing import Optional
+import json
+import logging
+from typing import Any, Dict, List, Optional
 
-MOCK_MODE = True
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from pydantic import BaseModel, Field
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# ---------- Pydantic Models ----------
+_SCHEMA_STORE: Dict[str, Dict[str, Any]] = {}
+
 
 class SchemaBody(BaseModel):
-    schema: Optional[dict] = None
+    domain: str = Field(..., description="Domain name such as healthcare or banking")
+    schema_payload: Dict[str, Any] = Field(..., alias="schema")
+
 
 class SchemaResponse(BaseModel):
     domain: str
-    fields: list
+    fields: List[str]
     system_prompt: str
 
-# ---------- Route ----------
+
+def get_schema(domain: str) -> Optional[Dict[str, Any]]:
+    return _SCHEMA_STORE.get(domain)
+
+
+def _extract_fields(schema: Dict[str, Any]) -> List[str]:
+    props = schema.get("properties", {})
+    if isinstance(props, dict) and props:
+        return list(props.keys())
+
+    fields = schema.get("fields", [])
+    if isinstance(fields, list):
+        return [str(f) for f in fields]
+
+    return []
+
 
 @router.post("/upload-schema", response_model=SchemaResponse)
 async def upload_schema(
+    request: Request,
     file: Optional[UploadFile] = File(None),
-    body: Optional[SchemaBody] = None
 ):
-    if MOCK_MODE:
-        return SchemaResponse(
-            domain="healthcare",
-            fields=["patient_name", "symptoms", "diagnosis", "icd10_code", "prescription"],
-            system_prompt="You are a medical scribe. Extract structured data from the doctor-patient conversation."
+    try:
+        if file is not None:
+            payload = await file.read()
+            loaded = json.loads(payload.decode("utf-8"))
+            domain = loaded.get("domain")
+            schema = loaded.get("schema") or loaded
+        else:
+            body_dict = await request.json()
+            body = SchemaBody.model_validate(body_dict)
+            domain = body.domain
+            schema = body.schema_payload
+
+        if not domain or not isinstance(schema, dict):
+            raise HTTPException(status_code=400, detail="Invalid schema payload")
+
+        fields = _extract_fields(schema)
+        system_prompt = schema.get("system_prompt") or (
+            f"You are a structured extractor for {domain}. Return only valid JSON."
         )
+
+        _SCHEMA_STORE[domain] = {
+            "domain": domain,
+            "fields": fields,
+            "system_prompt": system_prompt,
+            "schema": schema,
+        }
+
+        return SchemaResponse(domain=domain, fields=fields, system_prompt=system_prompt)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Failed to upload schema")
+        raise HTTPException(status_code=500, detail=f"Schema upload failed: {exc}")

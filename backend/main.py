@@ -17,6 +17,7 @@ from routes.transcribe import router as transcribe_router
 from routes.analyze import router as analyze_router
 from routes.approve import router as approve_router
 from routes.session import router as session_router
+from routes.postcall import router as postcall_router
 
 app = FastAPI(
     title="OmniVoice Engine API",
@@ -39,6 +40,7 @@ app.include_router(transcribe_router, prefix="/api", tags=["Transcribe"])
 app.include_router(analyze_router, prefix="/api", tags=["Analyze"])
 app.include_router(approve_router, prefix="/api", tags=["Approve"])
 app.include_router(session_router, prefix="/api", tags=["Session"])
+app.include_router(postcall_router, prefix="/api", tags=["PostCall"])
 
 @app.get("/")
 async def root():
@@ -50,7 +52,8 @@ async def root():
             "POST /api/transcribe",
             "POST /api/analyze",
             "POST /api/approve",
-            "GET  /api/session/{id}"
+            "GET  /api/session/{id}",
+            "POST /api/postcall/analyze",
         ]
     }
 

@@ -96,6 +96,7 @@ Return a JSON object with the extracted fields only. No explanation. No markdown
             ],
             max_tokens=500,
             temperature=0.1,
+            response_format={"type": "json_object"},
         )
         raw = response.choices[0].message.content.strip()
         # Strip markdown fences if present
