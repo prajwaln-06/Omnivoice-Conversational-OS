@@ -1,0 +1,11 @@
+{
+  "domain": "banking",
+  "fields": [
+    { "name": "customer_name", "type": "string", "description": "Applicant name" },
+    { "name": "loan_type", "type": "string", "description": "Home, Personal, or Car" },
+    { "name": "requested_amount", "type": "integer", "description": "Loan amount" },
+    { "name": "annual_income", "type": "integer", "description": "Yearly salary" },
+    { "name": "tenure_years", "type": "integer", "description": "Repayment period" },
+    { "name": "calculated_emi", "type": "string", "description": "Estimated EMI" }
+  ]
+}
