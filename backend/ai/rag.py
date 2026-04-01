@@ -1,6 +1,7 @@
 # backend/ai/rag.py
 # Pranav's AI layer — delegates to Sinchana's RAG pipeline
 
+import asyncio
 import logging
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,15 @@ async def get_context(query: str, domain: str) -> str:
     if not RAG_AVAILABLE:
         return ""
     try:
+        if len(query) > 1200:
+            chunk_size = 1000
+            chunks = [query[i : i + chunk_size] for i in range(0, len(query), chunk_size)]
+            tasks = [asyncio.create_task(_sinchana_get_context(chunk, domain)) for chunk in chunks]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            sanitized = [res for res in results if isinstance(res, str) and res and res != "..."]
+            combined = "\n".join(sanitized)
+            return combined if combined else ""
+
         result = await _sinchana_get_context(query, domain)
         return result if result and result != "..." else ""
     except Exception as e:

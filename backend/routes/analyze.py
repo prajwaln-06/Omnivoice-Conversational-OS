@@ -38,7 +38,13 @@ async def analyze_session(body: AnalyzeRequest):
         # -----------------------------------------
 
         transcript = session.get("transcript", "")
-        
+        sentiment = session.get("sentiment", {})
+        sentiment_context = ""
+        if sentiment:
+            sentiment_context = f"Patient emotional state: {sentiment.get('label', 'neutral')} (score {sentiment.get('score', 0.0):.2f})."
+            if sentiment.get("empathy_flag"):
+                sentiment_context += " The patient should be addressed in an empathetic, reassuring tone."
+
         # 1. Fetch Longitudinal History (Mocked for the hackathon demo)
         historical_context = "Patient has a history of severe Asthma."
 
@@ -50,7 +56,8 @@ async def analyze_session(body: AnalyzeRequest):
             transcript=transcript,
             session_id=body.session_id,
             rag_context=rag_context,
-            historical_context=historical_context
+            historical_context=historical_context,
+            sentiment_context=sentiment_context,
         )
 
         # 4. Check for drug conflicts (Your Safety Feature!)

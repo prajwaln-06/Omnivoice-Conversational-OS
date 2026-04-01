@@ -188,11 +188,18 @@ def _normalize_analytics(analytics: Dict[str, Any], transcript: str) -> Dict[str
     return merged
 
 
-def analyze_transcript_with_groq(transcript: str, session_id: str, rag_context: str = "", historical_context: str = "") -> Dict[str, Any]:
+def analyze_transcript_with_groq(
+    transcript: str,
+    session_id: str,
+    rag_context: str = "",
+    historical_context: str = "",
+    sentiment_context: str = "",
+) -> Dict[str, Any]:
     """Return analytics JSON enforcing clinical rules and Ghost Field Removal."""
+    cleaned_transcript = filter_small_talk(transcript)
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
-        return _normalize_analytics(_fallback_analytics(transcript), transcript)
+        return _normalize_analytics(_fallback_analytics(cleaned_transcript), cleaned_transcript)
 
     client = Groq(api_key=api_key)
     
@@ -206,7 +213,8 @@ def analyze_transcript_with_groq(transcript: str, session_id: str, rag_context: 
 
     Patient History: {historical_context}
     Clinical Context (RAG): {rag_context}
-    Transcript: {transcript}
+    Emotional Context: {sentiment_context}
+    Transcript after small-talk cleanup: {cleaned_transcript}
 
     EXPECTED JSON FORMAT:
     {{
