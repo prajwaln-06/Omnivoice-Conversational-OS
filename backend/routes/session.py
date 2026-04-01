@@ -1,43 +1,58 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
-from typing import Optional
+import logging
+from typing import Any, Dict, Literal, Optional
 
-MOCK_MODE = True
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# ---------- Pydantic Models ----------
+SESSION_STORE: Dict[str, Dict[str, Any]] = {}
+
 
 class SessionDocument(BaseModel):
     session_id: str
     domain: str
-    mode: str
-    transcript: str
-    extracted_data: dict
-    status: str
-    audio_s3_url: str
-    pdf_url: Optional[str] = None
-    whatsapp_sent: bool
+    mode: Literal["conversational", "silent"] = "conversational"
+    transcript: str = ""
+    extracted_data: Dict[str, Any] = Field(default_factory=dict)
+    analytics: Dict[str, Any] = Field(default_factory=dict)
+    reminder_schedule: list = Field(default_factory=list)
+    whatsapp_message: str = ""
+    audio_s3_url: str = ""
+    pdf_url: str = ""
+    whatsapp_sent: bool = False
+    status: Literal["pending_approval", "approved", "sent", "completed"] = "pending_approval"
     created_at: str
 
-# ---------- Route ----------
+
+def create_session(session: Dict[str, Any]) -> Dict[str, Any]:
+    SESSION_STORE[session["session_id"]] = session
+    return session
+
+
+def get_session(session_id: str) -> Optional[Dict[str, Any]]:
+    return SESSION_STORE.get(session_id)
+
+
+def update_session(session_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    session = SESSION_STORE.get(session_id)
+    if not session:
+        return None
+    session.update(updates)
+    SESSION_STORE[session_id] = session
+    return session
+
 
 @router.get("/session/{session_id}", response_model=SessionDocument)
-async def get_session(session_id: str):
-    if MOCK_MODE:
-        return SessionDocument(
-            session_id=session_id,
-            domain="healthcare",
-            mode="silent",
-            transcript="Patient reports severe headache for 3 days.",
-            extracted_data={
-                "patient_name": "Ravi Kumar",
-                "diagnosis": "Migraine without aura",
-                "icd10_code": "G43.009"
-            },
-            status="approved",
-            audio_s3_url=f"https://omnivoice-demo.s3.ap-south-1.amazonaws.com/audio/{session_id}.wav",
-            pdf_url=f"https://your-cloudfront-domain.cloudfront.net/prescriptions/{session_id}.pdf",
-            whatsapp_sent=True,
-            created_at="2025-01-01T10:00:00Z"
-        )
+async def get_session_route(session_id: str):
+    try:
+        session = get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return SessionDocument(**session)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Failed to fetch session %s", session_id)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch session: {exc}")
