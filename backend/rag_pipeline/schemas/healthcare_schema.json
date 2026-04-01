@@ -1,0 +1,12 @@
+{
+  "domain": "healthcare",
+  "fields": [
+    { "name": "patient_name", "type": "string", "description": "Full name" },
+    { "name": "age", "type": "integer", "description": "Patient age" },
+    { "name": "symptoms", "type": "list", "description": "List of symptoms" },
+    { "name": "duration", "type": "string", "description": "Symptom duration" },
+    { "name": "fever_temp", "type": "string", "description": "Body temperature" },
+    { "name": "prescription", "type": "string", "description": "Recommended meds" },
+    { "name": "follow_up", "type": "string", "description": "Next visit date" }
+  ]
+}
