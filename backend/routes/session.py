@@ -17,6 +17,7 @@ class SessionDocument(BaseModel):
     transcript: str = ""
     extracted_data: Dict[str, Any] = Field(default_factory=dict)
     analytics: Dict[str, Any] = Field(default_factory=dict)
+    analysis: Dict[str, Any] = Field(default_factory=dict)
     reminder_schedule: list = Field(default_factory=list)
     whatsapp_message: str = ""
     audio_s3_url: str = ""

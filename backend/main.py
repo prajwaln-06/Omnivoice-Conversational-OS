@@ -50,6 +50,7 @@ async def root():
         "endpoints": [
             "POST /api/upload-schema",
             "POST /api/transcribe",
+            "POST /api/passive-listen",
             "POST /api/analyze",
             "POST /api/approve",
             "GET  /api/session/{id}",

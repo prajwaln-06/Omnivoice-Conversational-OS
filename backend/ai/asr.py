@@ -26,20 +26,46 @@ class SarvamASR:
             wf.writeframes(pcm_data)
         return buf.getvalue()
 
-    def transcribe(self, pcm_data: bytes, model: str = 'saarika:v2.5', language_code: str = 'unknown') -> str:
+    def _is_wav(self, audio_data: bytes) -> bool:
+        return audio_data[:4] == b'RIFF'
+
+    def _is_mp3(self, audio_data: bytes) -> bool:
+        return audio_data[:3] == b'ID3' or audio_data[:2] == b'\xff\xfb'
+
+    def _get_audio_file_metadata(self, audio_data: bytes, filename: str) -> tuple[str, str]:
+        name = (filename or '').lower()
+        if name.endswith('.mp3') or self._is_mp3(audio_data):
+            return '.mp3', 'audio/mpeg'
+        if name.endswith('.wav') or self._is_wav(audio_data):
+            return '.wav', 'audio/wav'
+        return '', ''
+
+    def transcribe(
+        self,
+        audio_data: bytes,
+        model: str = 'saarika:v2.5',
+        language_code: str = 'unknown',
+        filename: str = 'audio.wav',
+    ) -> str:
         '''Sends audio to Sarvam REST API and returns transcript.'''
-        wav_bytes = self._pcm_to_wav_bytes(pcm_data)
-        
-        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp:
-            tmp.write(wav_bytes)
+        ext, content_type = self._get_audio_file_metadata(audio_data, filename)
+        if not ext:
+            file_bytes = self._pcm_to_wav_bytes(audio_data)
+            ext = '.wav'
+            content_type = 'audio/wav'
+        else:
+            file_bytes = audio_data
+
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp.write(file_bytes)
             tmp_path = tmp.name
 
         transcript = ''
         try:
             with open(tmp_path, 'rb') as f:
-                files = {'file': ('audio.wav', f, 'audio/wav')}
+                files = {'file': (f'audio{ext}', f, content_type)}
                 data  = {
-                    'model': model, 
+                    'model': model,
                     'language_code': language_code,
                     'with_timestamps': 'false',
                 }

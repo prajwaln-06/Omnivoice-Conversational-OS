@@ -46,7 +46,7 @@ async def analyze_session(body: AnalyzeRequest):
         rag_context = await get_context(transcript, body.domain)
         
         # 3. Call YOUR upgraded analyzer instead of the old one
-        extracted_data = await analyze_transcript_with_groq(
+        extracted_data = analyze_transcript_with_groq(
             transcript=transcript,
             session_id=body.session_id,
             rag_context=rag_context,
