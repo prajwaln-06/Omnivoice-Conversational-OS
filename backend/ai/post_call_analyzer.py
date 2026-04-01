@@ -7,6 +7,9 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from typing import Any, Dict, List
+# --- ADD THESE TWO LINES ---
+from rag_pipeline.rag import get_context, check_contraindications
+# -------------------------
 
 import requests
 from dotenv import load_dotenv
@@ -185,37 +188,61 @@ def _normalize_analytics(analytics: Dict[str, Any], transcript: str) -> Dict[str
     return merged
 
 
-def analyze_transcript_with_groq(transcript: str, session_id: str) -> Dict[str, Any]:
-    """Return analytics JSON for medications/reminders/follow-up."""
+def analyze_transcript_with_groq(transcript: str, session_id: str, rag_context: str = "", historical_context: str = "") -> Dict[str, Any]:
+    """Return analytics JSON enforcing clinical rules and Ghost Field Removal."""
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         return _normalize_analytics(_fallback_analytics(transcript), transcript)
 
     client = Groq(api_key=api_key)
-    prompt = (
-        "Analyze this medical consultation transcript and return ONLY a JSON object with keys: "
-        "medications (list of {name,dosage,frequency_hours,frequency_label,duration_days,instructions,reminder_message}), "
-        "reminder_schedule (list of {type,medicine_name,send_at_hours_from_now,message}), "
-        "whatsapp_immediate_message (string), risk_flags (array), "
-        "follow_up ({required,days_from_today,message}). "
-        "For this transcript infer realistic medicine schedule and safety flags."
-    )
+    
+    prompt = f"""
+    You are an expert Medical AI. Analyze the transcript and extract data into STRICT JSON.
+
+    RULES:
+    1. Ghost Field Removal: If a field is NOT explicitly mentioned, return null. Do NOT invent data.
+    2. Jargon Buster: In the 'patient_summary', explain complex medical terms simply.
+    3. Medication Scheduler: Format medications exactly as requested below.
+
+    Patient History: {historical_context}
+    Clinical Context (RAG): {rag_context}
+    Transcript: {transcript}
+
+    EXPECTED JSON FORMAT:
+    {{
+        "patient_summary": "Simple, jargon-free summary...",
+        "severity_score": "High | Medium | Low",
+        "medications": [
+            {{
+                "name": "Amoxicillin",
+                "dosage": "500mg",
+                "frequency_hours": 8,
+                "frequency_label": "every 8 hours",
+                "duration_days": 5,
+                "instructions": "after food",
+                "reminder_message": "Time to take Amoxicillin 500mg"
+            }}
+        ],
+        "follow_up": {{"required": true, "days_from_today": 5, "message": "Return in 5 days."}},
+        "risk_flags": ["String array of risks"]
+    }}
+    """
 
     try:
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": "Return strict JSON only."},
-                {"role": "user", "content": f"{prompt}\n\nTranscript:\n{transcript}"},
+                {"role": "user", "content": prompt},
             ],
             temperature=0.1,
             response_format={"type": "json_object"},
-            max_tokens=900,
+            max_tokens=1500,
         )
         raw = completion.choices[0].message.content or "{}"
         parsed = json.loads(raw)
-        if not isinstance(parsed, dict):
-            return _normalize_analytics(_fallback_analytics(transcript), transcript)
+        
+        # Merge our new smart JSON with the fallback normalization
         return _normalize_analytics(parsed, transcript)
     except Exception as exc:
         logger.error("Groq post-call analysis failed for %s: %s", session_id, exc)
@@ -389,9 +416,29 @@ def generate_pdf(analytics: Dict[str, Any], transcript: str, session_id: str) ->
 
 
 async def run_post_call_pipeline(audio_bytes, filename, session_id, domain) -> Dict[str, Any]:
-    """Async orchestration: transcribe -> analyze -> reminders -> pdf -> whatsapp."""
+    """Async orchestration: transcribe -> RAG -> analyze -> check safety -> reminders -> pdf -> whatsapp."""
     transcript = await asyncio.to_thread(transcribe_audio_file, audio_bytes, filename)
-    analytics = await asyncio.to_thread(analyze_transcript_with_groq, transcript, session_id)
+    
+    # 1. Fetch RAG and Historical Context (Your Brain!)
+    historical_context = "Patient has a history of severe Asthma." # Hardcoded for hackathon demo
+    rag_context = await get_context(transcript, domain)
+    
+    # 2. Run the upgraded AI Analyzer
+    analytics = await asyncio.to_thread(
+        analyze_transcript_with_groq, 
+        transcript, 
+        session_id, 
+        rag_context, 
+        historical_context
+    )
+    
+    # 3. Check for Drug Contraindications
+    meds = [m.get("name") for m in analytics.get("medications", []) if isinstance(m, dict)]
+    warnings = await check_contraindications(meds, historical_context)
+    if warnings:
+        analytics["risk_flags"].extend(warnings) # Inject warnings into the PDF flags
+    
+    # 4. Finish Pranav's existing pipeline
     reminder_schedule = await asyncio.to_thread(build_reminder_schedule, analytics)
     pdf_bytes = await asyncio.to_thread(generate_pdf, analytics, transcript, session_id)
     whatsapp_message = await asyncio.to_thread(
@@ -403,7 +450,7 @@ async def run_post_call_pipeline(audio_bytes, filename, session_id, domain) -> D
         "domain": domain,
         "mode": "silent",
         "transcript": transcript,
-        "extracted_data": {},
+        "extracted_data": analytics, 
         "analytics": analytics,
         "reminder_schedule": reminder_schedule,
         "whatsapp_message": whatsapp_message,
