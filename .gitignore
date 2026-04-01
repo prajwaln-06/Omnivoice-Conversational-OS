@@ -28,6 +28,7 @@ Thumbs.db
 backend/generated_docs/
 backend/test_output/
 backend/chroma_db/
+backend/rag_pipeline/chroma_db/
 *.pdf
 *.log
 
