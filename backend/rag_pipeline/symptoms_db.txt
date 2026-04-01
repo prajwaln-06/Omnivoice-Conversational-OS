@@ -1,0 +1,11 @@
+[FEVER_CLUSTER]
+Symptoms: high temperature, chills, shivering, body ache, sweating.
+Guidance: Check if temperature is above 100F. Suggest Paracetamol/Dolo 650. Rest and hydration.
+
+[RESPIRATORY_CLUSTER]
+Symptoms: cough, sore throat, runny nose, sneezing, chest congestion.
+Guidance: Suggest steam inhalation. Check for breathing difficulty or wheezing.
+
+[GASTRO_CLUSTER]
+Symptoms: stomach pain, acidity, bloating, nausea, loose motion.
+Guidance: Recommend ORS (Oral Rehydration Salts) and light food like curd rice. Avoid spicy meals.

@@ -1,7 +1,44 @@
+# Python environments
 venv/
+.venv/
+.venv_*
+backend/venv/
+backend/.venv/
+
+# Environment files
 .env
+.env.local
+.env.*.local
+
+# Python cache
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# OS files
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Generated files and artifacts
+backend/generated_docs/
+backend/test_output/
 backend/chroma_db/
+backend/rag_pipeline/chroma_db/
+*.pdf
+*.log
+
+# Third-party dependencies
 node_modules/
+
+# IDE settings (optional, remove if you want to track)
+.vscode/
+.idea/
+*.code-workspace
+
+# WhatsApp MCP (sensitive/external integration)
+backend/whatsapp-mcp/

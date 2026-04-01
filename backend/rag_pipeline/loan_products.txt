@@ -1,0 +1,10 @@
+[HOME_LOAN]
+Rate: 8.5% p.a. | Max Tenure: 30 years.
+Requirement: Income proof, property documents, last 6 months bank statement.
+
+[PERSONAL_LOAN]
+Rate: 11.5% p.a. | Max Tenure: 5 years.
+Requirement: Min salary 25k/month. No collateral required. Fast processing.
+
+[GOLD_LOAN]
+Rate: 9.0% p.a. | Instant approval.
