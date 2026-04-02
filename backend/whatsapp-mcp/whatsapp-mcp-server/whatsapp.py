@@ -10,6 +10,21 @@ import audio
 MESSAGES_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'whatsapp-bridge', 'store', 'messages.db')
 WHATSAPP_API_BASE_URL = "http://localhost:8080/api"
 
+
+def _normalize_recipient(recipient: str) -> str:
+    """Normalize phone input to WhatsApp-compatible recipient format.
+
+    If a full JID is provided (contains '@'), keep it unchanged.
+    Otherwise strip spaces, plus signs, dashes, and keep digits only.
+    """
+    if not recipient:
+        return recipient
+    recipient = recipient.strip()
+    if "@" in recipient:
+        return recipient
+    digits = "".join(ch for ch in recipient if ch.isdigit())
+    return digits
+
 @dataclass
 class Message:
     timestamp: datetime
@@ -628,6 +643,7 @@ def send_message(recipient: str, message: str) -> Tuple[bool, str]:
         if not recipient:
             return False, "Recipient must be provided"
         
+        recipient = _normalize_recipient(recipient)
         url = f"{WHATSAPP_API_BASE_URL}/send"
         payload = {
             "recipient": recipient,
@@ -662,6 +678,7 @@ def send_file(recipient: str, media_path: str) -> Tuple[bool, str]:
         if not os.path.isfile(media_path):
             return False, f"Media file not found: {media_path}"
         
+        recipient = _normalize_recipient(recipient)
         url = f"{WHATSAPP_API_BASE_URL}/send"
         payload = {
             "recipient": recipient,
@@ -702,6 +719,7 @@ def send_audio_message(recipient: str, media_path: str) -> Tuple[bool, str]:
             except Exception as e:
                 return False, f"Error converting file to opus ogg. You likely need to install ffmpeg: {str(e)}"
         
+        recipient = _normalize_recipient(recipient)
         url = f"{WHATSAPP_API_BASE_URL}/send"
         payload = {
             "recipient": recipient,
