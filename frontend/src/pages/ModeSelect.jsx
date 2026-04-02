@@ -1,9 +1,13 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 export default function ModeSelect() {
   const nav = useNavigate();
+  const location = useLocation();
   const [selectedMode, setSelectedMode] = useState("");
+
+  const upstreamSchema = location.state?.schema || null;
+  const domain = location.state?.domain || upstreamSchema?.domain || "healthcare";
 
   return (
     <div
@@ -157,8 +161,13 @@ export default function ModeSelect() {
 
         <button
           onClick={() => {
-            if (selectedMode === "active") nav("/active");
-            if (selectedMode === "passive") nav("/passive");
+            const nextState = {
+              domain,
+              schema: upstreamSchema,
+              mode: selectedMode === "active" ? "conversational" : "silent",
+            };
+            if (selectedMode === "active") nav("/active", { state: nextState });
+            if (selectedMode === "passive") nav("/passive", { state: nextState });
           }}
           disabled={!selectedMode}
           style={{

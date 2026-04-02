@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
-const API_BASE = "http://localhost:8000";
+import { analyze, transcribe } from "../api/client";
 
 export default function Active() {
   const nav = useNavigate();
   const location = useLocation();
 
-  const domain = location.state?.domain || "healthcare";
+  const domain = location.state?.domain || location.state?.schema?.domain || "healthcare";
   const mode = location.state?.mode || "conversational";
   const schema = location.state?.schema || null;
 
@@ -20,24 +19,11 @@ export default function Active() {
       setError("");
       setStep("processing");
 
-      const formData = new FormData();
-      const emptyBlob = new Blob(["demo-audio"], { type: "audio/wav" });
-      formData.append("audio", emptyBlob, "demo.wav");
-      formData.append("domain", domain);
-      formData.append("mode", mode);
-
-      const res = await fetch(`${API_BASE}/api/transcribe`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) throw new Error("Transcribe failed");
-
-      const data = await res.json();
+      const data = await transcribe({ mode, domain });
       setSessionId(data.session_id);
       setStep("ready");
     } catch (err) {
-      setError("Failed to start active listening flow");
+      setError(err.message || "Failed to start active listening flow");
       setStep("idle");
     }
   };
@@ -46,17 +32,7 @@ export default function Active() {
     try {
       setStep("analyzing");
 
-      const res = await fetch(`${API_BASE}/api/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: sessionId,
-          domain,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Analyze failed");
-      const data = await res.json();
+      const data = await analyze({ session_id: sessionId, domain });
 
       nav("/result", {
         state: {
@@ -69,7 +45,7 @@ export default function Active() {
         },
       });
     } catch (err) {
-      setError("Failed to analyze session");
+      setError(err.message || "Failed to analyze session");
       setStep("ready");
     }
   };

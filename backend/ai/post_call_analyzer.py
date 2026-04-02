@@ -21,6 +21,31 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
+def filter_small_talk(transcript: str) -> str:
+    """Remove lightweight greetings/chitchat to keep extraction focused on clinical content."""
+    if not transcript:
+        return ""
+
+    lines = [line.strip() for line in transcript.splitlines() if line.strip()]
+    if not lines:
+        return ""
+
+    small_talk_patterns = [
+        r"^(hi|hello|hey|good\s+(morning|afternoon|evening))\b",
+        r"^(how\s+are\s+you|thanks|thank\s+you|okay|ok)\b",
+        r"^(nice\s+to\s+meet\s+you|have\s+a\s+nice\s+day)\b",
+    ]
+
+    filtered = []
+    for line in lines:
+        lowered = line.lower()
+        if any(re.search(pattern, lowered) for pattern in small_talk_patterns):
+            continue
+        filtered.append(line)
+
+    return "\n".join(filtered) if filtered else transcript.strip()
+
+
 def transcribe_audio_file(audio_bytes: bytes, filename: str) -> str:
     """Transcribe MP3/WAV bytes via Sarvam STT API."""
     api_key = os.getenv("SARVAM_API_KEY")

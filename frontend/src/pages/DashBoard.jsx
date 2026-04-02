@@ -5,6 +5,7 @@ import Card from "../components/Card";
 import SchemaCard from "../components/SchemaCard";
 import UploadBox from "../components/UploadBox";
 import GlowButton from "../components/GlowButton";
+import { uploadSchema } from "../api/client";
 
 const healthcareFields = [
   ["patient_name", "string"],
@@ -22,6 +23,8 @@ export default function Dashboard() {
 
   const [schemaSource, setSchemaSource] = useState("preset");
   const [uploadedSchema, setUploadedSchema] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const presetTitle = "Healthcare Assistant";
   const presetDomain = "healthcare";
@@ -56,18 +59,37 @@ export default function Dashboard() {
     }
   };
 
-  const handleContinue = () => {
-    nav("/mode", {
-      state: {
-        schemaSource,
-        schema:
-          uploadedSchema || {
-            domain: presetDomain,
-            display_name: presetTitle,
-            fields: previewFields.map(([name, type]) => ({ name, type })),
+  const handleContinue = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const schemaToUse =
+        uploadedSchema || {
+          domain: presetDomain,
+          display_name: presetTitle,
+          fields: previewFields.map(([name, type]) => ({ name, type })),
+          system_prompt: "You are a structured extractor for healthcare. Return only valid JSON.",
+        };
+
+      const uploaded = await uploadSchema(schemaToUse);
+      const domain = uploaded?.domain || schemaToUse.domain || presetDomain;
+
+      nav("/mode", {
+        state: {
+          schemaSource,
+          domain,
+          schema: {
+            ...schemaToUse,
+            domain,
           },
-      },
-    });
+        },
+      });
+    } catch (e) {
+      setError(e.message || "Failed to upload schema to backend");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -173,10 +195,14 @@ export default function Dashboard() {
         </Card>
 
         <div className="mt-7 flex justify-end">
-          <GlowButton onClick={handleContinue}>
-            Continue to Mode Selection →
+          <GlowButton onClick={handleContinue} disabled={loading}>
+            {loading ? "Uploading Schema..." : "Continue to Mode Selection →"}
           </GlowButton>
         </div>
+
+        {error ? (
+          <div className="mt-4 text-red-400 text-sm">{error}</div>
+        ) : null}
       </div>
     </div>
   );

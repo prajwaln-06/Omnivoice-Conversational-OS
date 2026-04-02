@@ -1,7 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMemo, useState } from "react";
-
-const API_BASE = "http://localhost:8000";
+import { approve } from "../api/client";
 
 export default function Result() {
   const nav = useNavigate();
@@ -33,22 +32,15 @@ export default function Result() {
       setApproving(true);
       setError("");
 
-      const res = await fetch(`${API_BASE}/api/approve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: sessionId,
-          extracted_data: extractedData,
-        }),
+      const data = await approve({
+        session_id: sessionId,
+        extracted_data: extractedData,
       });
-
-      if (!res.ok) throw new Error("Approve failed");
-      const data = await res.json();
       setPdfUrl(data.pdf_url || "");
       setApproving(false);
     } catch (err) {
       setApproving(false);
-      setError("Failed to approve and generate PDF");
+      setError(err.message || "Failed to approve and generate PDF");
     }
   };
 

@@ -373,17 +373,23 @@ def build_and_send_pdf_from_conversation(conversation: dict, recipient: str) -> 
     log_step(f"PDF saved at: {pdf_path}")
 
     normalized_to = normalize_recipient(recipient)
-    intro_ok, intro_msg = send_message(
-        normalized_to,
-        f"OmniVoice report generated for session {session_id}. Sending PDF now.",
-    )
-    log_step(f"WhatsApp intro message status: {intro_ok} | {intro_msg}")
-    file_ok, file_msg = send_file(normalized_to, pdf_path)
-    log_step(f"WhatsApp PDF file status: {file_ok} | {file_msg}")
+    if normalized_to:
+        intro_ok, intro_msg = send_message(
+            normalized_to,
+            f"OmniVoice report generated for session {session_id}. Sending PDF now.",
+        )
+        log_step(f"WhatsApp intro message status: {intro_ok} | {intro_msg}")
+        file_ok, file_msg = send_file(normalized_to, pdf_path)
+        log_step(f"WhatsApp PDF file status: {file_ok} | {file_msg}")
+    else:
+        intro_ok, intro_msg = False, "Skipped: recipient missing"
+        file_ok, file_msg = False, "Skipped: recipient missing"
+        log_step("Recipient missing. Skipping WhatsApp send.")
 
     return {
         "session_id": session_id,
         "pdf_path": pdf_path,
+        "document_data": document_data,
         "caption_sent": intro_ok,
         "caption_response": intro_msg,
         "file_sent": file_ok,

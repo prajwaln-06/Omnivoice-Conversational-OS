@@ -33,10 +33,16 @@ class SarvamASR:
         return audio_data[:3] == b'ID3' or audio_data[:2] == b'\xff\xfb'
 
     def _get_audio_file_metadata(self, audio_data: bytes, filename: str) -> tuple[str, str]:
-        name = (filename or '').lower()
-        if name.endswith('.mp3') or self._is_mp3(audio_data):
+        # Prefer signature detection from bytes to avoid trusting misleading filenames.
+        if self._is_mp3(audio_data):
             return '.mp3', 'audio/mpeg'
-        if name.endswith('.wav') or self._is_wav(audio_data):
+        if self._is_wav(audio_data):
+            return '.wav', 'audio/wav'
+
+        name = (filename or '').lower()
+        if name.endswith('.mp3'):
+            return '.mp3', 'audio/mpeg'
+        if name.endswith('.wav'):
             return '.wav', 'audio/wav'
         return '', ''
 
@@ -49,7 +55,14 @@ class SarvamASR:
     ) -> str:
         '''Sends audio to Sarvam REST API and returns transcript.'''
         ext, content_type = self._get_audio_file_metadata(audio_data, filename)
-        if not ext:
+        if ext == '.wav' and not self._is_wav(audio_data):
+            file_bytes = self._pcm_to_wav_bytes(audio_data)
+        elif ext == '.mp3' and not self._is_mp3(audio_data):
+            # If bytes are not actually MP3, fall back to WAV-wrapped PCM.
+            file_bytes = self._pcm_to_wav_bytes(audio_data)
+            ext = '.wav'
+            content_type = 'audio/wav'
+        elif not ext:
             file_bytes = self._pcm_to_wav_bytes(audio_data)
             ext = '.wav'
             content_type = 'audio/wav'

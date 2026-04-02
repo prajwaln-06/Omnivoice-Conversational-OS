@@ -1,14 +1,13 @@
 import { useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-
-const API_BASE = "http://localhost:8000";
+import { analyze, transcribe } from "../api/client";
 
 export default function Passive() {
   const nav = useNavigate();
   const location = useLocation();
   const fileInputRef = useRef(null);
 
-  const domain = location.state?.domain || "healthcare";
+  const domain = location.state?.domain || location.state?.schema?.domain || "healthcare";
   const mode = location.state?.mode || "silent";
   const schema = location.state?.schema || null;
 
@@ -27,30 +26,8 @@ export default function Passive() {
     setStatus("processing");
 
     try {
-      const formData = new FormData();
-      formData.append("audio", file);
-      formData.append("domain", domain);
-      formData.append("mode", mode);
-
-      const transcribeRes = await fetch(`${API_BASE}/api/transcribe`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!transcribeRes.ok) throw new Error("Transcribe failed");
-      const transcribeData = await transcribeRes.json();
-
-      const analyzeRes = await fetch(`${API_BASE}/api/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: transcribeData.session_id,
-          domain,
-        }),
-      });
-
-      if (!analyzeRes.ok) throw new Error("Analyze failed");
-      const analyzeData = await analyzeRes.json();
+      const transcribeData = await transcribe({ mode, domain, audioFile: file });
+      const analyzeData = await analyze({ session_id: transcribeData.session_id, domain });
 
       nav("/result", {
         state: {
@@ -65,7 +42,7 @@ export default function Passive() {
       });
     } catch (err) {
       setStatus("idle");
-      setError("Failed to upload and analyze audio");
+      setError(err.message || "Failed to upload and analyze audio");
     }
   };
 

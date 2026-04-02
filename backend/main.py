@@ -18,6 +18,7 @@ from routes.analyze import router as analyze_router
 from routes.approve import router as approve_router
 from routes.session import router as session_router
 from routes.postcall import router as postcall_router
+from routes.agent import router as agent_router
 
 app = FastAPI(
     title="OmniVoice Engine API",
@@ -41,6 +42,7 @@ app.include_router(analyze_router, prefix="/api", tags=["Analyze"])
 app.include_router(approve_router, prefix="/api", tags=["Approve"])
 app.include_router(session_router, prefix="/api", tags=["Session"])
 app.include_router(postcall_router, prefix="/api", tags=["PostCall"])
+app.include_router(agent_router, prefix="/api", tags=["Agent"])
 
 @app.get("/")
 async def root():
@@ -55,6 +57,9 @@ async def root():
             "POST /api/approve",
             "GET  /api/session/{id}",
             "POST /api/postcall/analyze",
+            "POST /api/agent/live",
+            "POST /api/agent/passive",
+            "GET  /api/agent/pdf/{file_name}",
         ]
     }
 
