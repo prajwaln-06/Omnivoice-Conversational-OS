@@ -1,0 +1,21 @@
+{
+  "patient_id": "918660573165",
+  "visits": [
+    {
+      "session_id": "b8ab9cd9-4fa7-4639-a242-8985fb5a6787",
+      "date": "02 April 2026 11:15",
+      "diagnosis": "Unknown, requires further evaluation",
+      "chief_complaint": "The patient presents with a severe headache and fever.",
+      "symptoms": [
+        "severe headache",
+        "fever"
+      ],
+      "medications": [],
+      "follow_up": "Follow up with the doctor for further evaluation and management.",
+      "sentiment_score": 4,
+      "sentiment_label": "Concerned"
+    }
+  ],
+  "last_visit": "02 April 2026 11:15",
+  "total_visits": 1
+}

@@ -1,0 +1,70 @@
+{
+  "patient_id": "917259443981",
+  "visits": [
+    {
+      "session_id": "2279fb50-7b4a-4ba6-bfc4-58ccff816056",
+      "date": "02 April 2026 11:06",
+      "diagnosis": "Viral or bacterial infection",
+      "chief_complaint": "The patient presents with a severe headache and fever.",
+      "symptoms": [
+        "severe headache",
+        "fever"
+      ],
+      "medications": [
+        {
+          "name": "Acetaminophen",
+          "dosage": "650mg",
+          "frequency": "every 4 hours",
+          "duration": "as needed"
+        }
+      ],
+      "follow_up": "The patient should follow up in 3-5 days to reassess symptoms and adjust treatment plan as necessary.",
+      "sentiment_score": 4,
+      "sentiment_label": "Concerned"
+    },
+    {
+      "session_id": "458359fe-284c-4104-92b4-c43e57597549",
+      "date": "02 April 2026 11:27",
+      "diagnosis": "Viral illness or infection",
+      "chief_complaint": "The patient presents with a severe headache and fever.",
+      "symptoms": [
+        "severe headache",
+        "fever"
+      ],
+      "medications": [
+        {
+          "name": "Acetaminophen",
+          "dosage": "1000mg",
+          "frequency": "every 6 hours",
+          "duration": "as needed"
+        }
+      ],
+      "follow_up": "The patient is advised to follow up with the doctor in 3-5 days to reassess symptoms and adjust the treatment plan as necessary.",
+      "sentiment_score": 4,
+      "sentiment_label": "Concerned"
+    },
+    {
+      "session_id": "838f6dd0-7fc3-42e7-8270-a4b531198f9b",
+      "date": "02 April 2026 11:49",
+      "diagnosis": "Possible viral or bacterial infection",
+      "chief_complaint": "The patient presents with a severe headache and fever.",
+      "symptoms": [
+        "severe headache",
+        "fever"
+      ],
+      "medications": [
+        {
+          "name": "Acetaminophen",
+          "dosage": "1000mg",
+          "frequency": "every 6 hours",
+          "duration": "as needed"
+        }
+      ],
+      "follow_up": "The patient is advised to follow up in 3-5 days to reassess symptoms and adjust treatment plan as needed.",
+      "sentiment_score": 4,
+      "sentiment_label": "Concerned"
+    }
+  ],
+  "last_visit": "02 April 2026 11:49",
+  "total_visits": 3
+}

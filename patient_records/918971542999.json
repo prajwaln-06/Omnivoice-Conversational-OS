@@ -1,0 +1,28 @@
+{
+  "patient_id": "918971542999",
+  "visits": [
+    {
+      "session_id": "fb8333f7-582a-45f4-aeb9-dc5e222cba6d",
+      "date": "02 April 2026 10:28",
+      "diagnosis": "Viral illness or infection",
+      "chief_complaint": "The patient presents with a severe headache and fever.",
+      "symptoms": [
+        "severe headache",
+        "fever"
+      ],
+      "medications": [
+        {
+          "name": "Acetaminophen",
+          "dosage": "1000mg",
+          "frequency": "every 6 hours",
+          "duration": "as needed"
+        }
+      ],
+      "follow_up": "The patient is advised to follow up with the doctor in 3-5 days to reassess symptoms and adjust the treatment plan as necessary.",
+      "sentiment_score": 4,
+      "sentiment_label": "Concerned"
+    }
+  ],
+  "last_visit": "02 April 2026 10:28",
+  "total_visits": 1
+}

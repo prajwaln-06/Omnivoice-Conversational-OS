@@ -27,8 +27,8 @@ SAMPLE_RATE = 16000
 CHANNELS = 1
 CHUNK_MS = 200
 CHUNK_FRAMES = int(SAMPLE_RATE * CHUNK_MS / 1000)
-SILENCE_THRESH = 500
-SILENCE_SECS = 1.2
+SILENCE_THRESH = 300
+SILENCE_SECS = 1.8
 
 def log_step(msg: str):
     print(f"[OmniVoice] {msg}", flush=True)
@@ -40,50 +40,35 @@ def detect_silence(audio_data: bytes, threshold: int = SILENCE_THRESH) -> bool:
     return peak < threshold
 
 def record_utterance() -> bytes | None:
+    import keyboard
     pa = pyaudio.PyAudio()
     
-    # Auto-detect OnePlus or fallback
-    target_idx = None
-    for i in range(pa.get_device_count()):
-        dev = pa.get_device_info_by_index(i)
-        if dev.get('maxInputChannels', 0) > 0 and 'OnePlus' in dev.get('name', ''):
-            target_idx = i
-            break
-            
     stream = pa.open(
         format=pyaudio.paInt16,
         channels=CHANNELS,
         rate=SAMPLE_RATE,
         input=True,
+        input_device_index=2,  # AMD Audio Device
         frames_per_buffer=CHUNK_FRAMES,
-        input_device_index=target_idx,
     )
     
-    print("\n🎙️ Listening... (Speak now or say 'end conversation' to stop)", flush=True)
+    print("\n🎙️ HOLD SPACE to speak, RELEASE to send. (Type 'q' + Enter to quit)", flush=True)
+    
+    # Wait for space press
+    keyboard.wait('space')
+    print("🔴 Recording...", flush=True)
     frames = []
-    silent_chunks = 0
-    speaking = False
-    max_silent = int(SILENCE_SECS * 1000 / CHUNK_MS)
+    
+    while keyboard.is_pressed('space'):
+        chunk = stream.read(CHUNK_FRAMES, exception_on_overflow=False)
+        frames.append(chunk)
 
-    try:
-        while True:
-            chunk = stream.read(CHUNK_FRAMES, exception_on_overflow=False)
-            is_silent = detect_silence(chunk)
-            if not is_silent:
-                speaking = True
-                silent_chunks = 0
-                frames.append(chunk)
-            elif speaking:
-                frames.append(chunk)
-                silent_chunks += 1
-                if silent_chunks >= max_silent:
-                    break
-    finally:
-        stream.stop_stream()
-        stream.close()
-        pa.terminate()
+    stream.stop_stream()
+    stream.close()
+    pa.terminate()
+    print("✅ Done recording.", flush=True)
 
-    if not frames or not speaking:
+    if not frames:
         return None
     return b"".join(frames)
 
@@ -92,19 +77,11 @@ def play_audio(audio_bytes: bytes):
     with wave.open(buf, 'rb') as wf:
         pa = pyaudio.PyAudio()
         
-        target_idx = None
-        for i in range(pa.get_device_count()):
-            dev = pa.get_device_info_by_index(i)
-            if dev.get('maxOutputChannels', 0) > 0 and 'OnePlus' in dev.get('name', ''):
-                target_idx = i
-                break
-                
         stream = pa.open(
             format=pa.get_format_from_width(wf.getsampwidth()),
             channels=wf.getnchannels(),
             rate=wf.getframerate(),
             output=True,
-            output_device_index=target_idx,
         )
         
         data_chunk = wf.readframes(1024)
@@ -145,8 +122,17 @@ def run_autonomous_session(recipient_phone: str, domain: str = "healthcare"):
                 continue
                 
             log_step("Transcribing with Sarvam...")
-            user_text = asr.transcribe(pcm_data, filename="utterance.pcm")
+            import wave, io
+            wav_buf = io.BytesIO()
+            with wave.open(wav_buf, 'wb') as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(16000)
+                wf.writeframes(pcm_data)
+            wav_bytes = wav_buf.getvalue()
+            user_text = asr.transcribe(wav_bytes, filename="utterance.wav")
             if not user_text:
+                print("[OmniVoice] ⚠️ Empty transcript — speak louder or longer", flush=True)
                 continue
                 
             print(f"👤 You: {user_text}")
@@ -197,6 +183,8 @@ def run_autonomous_session(recipient_phone: str, domain: str = "healthcare"):
         session_id=session_id
     )
     
+    print(f"[JSON_DATA] {json.dumps(document_data)}", flush=True)
+
     log_step("Rendering PDF...")
     pdf_bytes = render_document_to_pdf(document_data, domain=domain)
     
